@@ -1,62 +1,37 @@
 package features
 
 import (
-	"fmt"
+	"math"
+
 	"github.com/jasonhongxyz/rtc/src/utils"
-	"golang.org/x/exp/constraints"
 )
 
-type Matrix4 [4][4]float64
-type Matrix3 [3][3]float64
-type Matrix2 [2][2]float64
-
-type Number interface {
-	constraints.Integer | constraints.Float
+type Matrix interface {
+	Multiply([][]float64, [][]float64) [][]float64
+	MultiplyTuple([][]float64, Tuple) [][]float64
+	Transpose([][]float64) [][]float64
+	Determinant([][]float64) float64
 }
 
-func New4DMatrix[T Number](vals []T) [4][4]T {
-	var ret [4][4]T
+type Matrix4 struct{}
+type Matrix3 struct{}
+type Matrix2 struct{}
 
-	z := 0
-	for x := range ret {
-		for y := range ret[0] {
-			ret[x][y] = vals[z]
-			z++
-		}
+func NewMatrix(arr []float64) [][]float64 {
+	dimension := int(math.Sqrt(float64(len(arr))))
+	matrix := make([][]float64, dimension)
+
+	i := 0
+	for x := 0; x < dimension; x++ {
+		matrix[x] = make([]float64, dimension)
+		matrix[x] = arr[i : i+dimension]
+		i += dimension
 	}
 
-	return ret
+	return matrix
 }
 
-func New3DMatrix[T Number](vals []T) [3][3]T {
-	var ret [3][3]T
-
-	z := 0
-	for x := range ret {
-		for y := range ret[0] {
-			ret[x][y] = vals[z]
-			z++
-		}
-	}
-
-	return ret
-}
-
-func New2DMatrix[T Number](vals []T) [2][2]T {
-	var ret [2][2]T
-
-	z := 0
-	for x := range ret {
-		for y := range ret[0] {
-			ret[x][y] = vals[z]
-			z++
-		}
-	}
-
-	return ret
-}
-
-func Equal4DMatrix(m1, m2 Matrix4) bool {
+func Equal(m1, m2 [][]float64) bool {
 	for x := range m1 {
 		for y := range m1[0] {
 			if !utils.Equal(m1[x][y], m2[x][y]) {
@@ -64,51 +39,81 @@ func Equal4DMatrix(m1, m2 Matrix4) bool {
 			}
 		}
 	}
-
 	return true
 }
 
-
-func Multiply4DMatrix[T Number](m1, m2 [4][4]T) [4][4]T {
-	var ret [4][4]T
+func (Matrix4) Multiply(m1, m2 [][]float64) [][]float64 {
+	ret := make([][]float64, 4)
 
 	for x := range m1 {
 		for y := range m1[0] {
-			ret[x][y] = m1[x][0] * m2[0][y] +
-									m1[x][1] * m2[1][y] +
-									m1[x][2] * m2[2][y] +
-									m1[x][3] * m2[3][y]
+			ret[x] = append(ret[x], m1[x][0]*m2[0][y]+
+				m1[x][1]*m2[1][y]+
+				m1[x][2]*m2[2][y]+
+				m1[x][3]*m2[3][y])
 		}
 	}
 
 	return ret
 }
 
-func Multiply4DMatrixTuple(m [4][4]float64, t Tuple) Tuple {
+func (Matrix4) MultiplyTuple(m [][]float64, t Tuple) Tuple {
 	var ret Tuple
 
 	z := 0
-	for x := range(m) {
-		ret[z] = m[x][0] * t[0] +
-						m[x][1] * t[1] +
-						m[x][2] * t[2] +
-						m[x][3] * t[3]
-		z ++
+	for x := range m {
+		ret[z] = m[x][0]*t[0] +
+			m[x][1]*t[1] +
+			m[x][2]*t[2] +
+			m[x][3]*t[3]
+		z++
 	}
 
 	return ret
 }
 
-func Transpose4DMatrix[T Number](m [4][4]T) [4][4]T {
-	var ret [4][4]T
+func Transpose(m [][]float64) [][]float64 {
+	ret := make([][]float64, len(m))
+	for i := 0; i < len(m); i++ {
+		ret[i] = make([]float64, len(m))
+	}
 
-	for x := range(m) {
-		for y := range(m[0]) {
+	for x := range m {
+		for y := range m[0] {
 			ret[y][x] = m[x][y]
 		}
 	}
 
-	fmt.Print(ret)
+	return ret
+}
+
+func (Matrix2) Determinant(m [][]float64) float64 {
+	determinant := (m[0][0] * m[1][1]) - (m[0][1] * m[1][0])
+	return determinant
+}
+
+func Submatrix(m [][]float64, r, c int) [][]float64 {
+	var vals []float64
+	for row := range m {
+		for col := range m {
+			if row == r || col == c {
+				continue
+			} else {
+				vals = append(vals, m[row][col])
+			}
+		}
+	}
+
+	ret := NewMatrix(vals)
 
 	return ret
+}
+
+func (Matrix3) Minor(m [][]float64, r, c int) float64 {
+	subm := Submatrix(m, r, c)
+
+	matrix2 := Matrix2{}
+	det := matrix2.Determinant(subm)
+
+	return float64(det)
 }
