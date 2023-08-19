@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const EPSILON = 0.00001
+const EPSILON = 0.0001
 
 func GetFilenameDateTime() string {
 	const layout = "15_04_05.01-02-2006"

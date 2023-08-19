@@ -1,6 +1,7 @@
 package features
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/jasonhongxyz/rtc/src/utils"
@@ -9,7 +10,6 @@ import (
 type Matrix interface {
 	Multiply([][]float64, [][]float64) [][]float64
 	MultiplyTuple([][]float64, Tuple) [][]float64
-	Transpose([][]float64) [][]float64
 	Determinant([][]float64) float64
 }
 
@@ -29,6 +29,12 @@ func NewMatrix(arr []float64) [][]float64 {
 	}
 
 	return matrix
+}
+
+func PrettyPrint(arr [][]float64) {
+	for i := 0; i < len(arr); i++ {
+		fmt.Println(arr[i])
+	}
 }
 
 func Equal(m1, m2 [][]float64) bool {
@@ -92,6 +98,16 @@ func (Matrix2) Determinant(m [][]float64) float64 {
 	return determinant
 }
 
+func (Matrix3) Determinant(m [][]float64) float64 {
+	det := 0.0
+
+	for i := 0; i < 3; i++ {
+		det = det + m[0][i]*Cofactor(m, 0, i)
+	}
+
+	return det
+}
+
 func Submatrix(m [][]float64, r, c int) [][]float64 {
 	var vals []float64
 	for row := range m {
@@ -109,11 +125,60 @@ func Submatrix(m [][]float64, r, c int) [][]float64 {
 	return ret
 }
 
-func (Matrix3) Minor(m [][]float64, r, c int) float64 {
+func Minor(m [][]float64, r, c int) float64 {
 	subm := Submatrix(m, r, c)
 
-	matrix2 := Matrix2{}
-	det := matrix2.Determinant(subm)
+	return Determinant(subm)
+}
 
-	return float64(det)
+func Cofactor(m [][]float64, r, c int) float64 {
+	if (r+c)%2 == 1 {
+		return -1.0 * Minor(m, r, c)
+	}
+
+	return Minor(m, r, c)
+}
+
+func Determinant(m [][]float64) float64 {
+	det := 0.0
+	s := len(m)
+
+	if s == 2 {
+		det = (m[0][0] * m[1][1]) - (m[0][1] * m[1][0])
+	} else {
+		for i := 0; i < s; i++ {
+			det = det + m[0][i]*Cofactor(m, 0, i)
+		}
+	}
+
+	return det
+}
+
+func IsInvertible(m [][]float64) bool {
+	if Determinant(m) == 0 {
+		return false
+	}
+	return true
+}
+
+func Inverse(m [][]float64) ([][]float64, error) {
+	if !IsInvertible(m) {
+		return nil, fmt.Errorf("Matrix not invertible!")
+	}
+
+	s := len(m)
+
+	ret := make([][]float64, s)
+	for i := 0; i < s; i++ {
+		ret[i] = make([]float64, s)
+	}
+
+	for row := 0; row < s; row++ {
+		for col := 0; col < s; col++ {
+			c := Cofactor(m, row, col)
+			ret[col][row] = c / Determinant(m)
+		}
+	}
+
+	return ret, nil
 }
